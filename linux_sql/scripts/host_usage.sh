@@ -29,10 +29,11 @@ disk_available=$(echo "$disk" | awk '{if(NR==3) print $4}' | xargs)
 
 export PGPASSWORD='$psql_password' psql -h $hostname -U $psql_user -w $database_name -p $psql_port -c \
         "INSERT INTO host_usage
-         (hostname, timestamp, memory_free, cpu_idle, cpu_kernel, disk_io, disk_available) 
-         VALUES ('"$hostname"',timestamp, $memory_free, $cpu_idle,$cpu_kernel, $disk_io, $disk_available);"
+         (hostname,  memory_free, cpu_idle, cpu_kernel, disk_io, disk_available) 
+         VALUES ('"$hostname"', $memory_free, $cpu_idle,$cpu_kernel, $disk_io, $disk_available);"
 
 exit 0
+
 
 
 

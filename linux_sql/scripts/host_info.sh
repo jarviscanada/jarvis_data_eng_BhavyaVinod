@@ -21,7 +21,7 @@ hostname=$(hostname -f)
 
 # Linux information.
 lscpu_output=`lscpu`
-meminfo=`cat /proc/meminfo`
+#meminfo=`cat /proc/meminfo`
 
 # Saving hardware details into new variables
 cpu_number=$(echo "$lscpu_output" | egrep "^CPU\(s\):" | awk '{print $2}' | xargs)
@@ -29,7 +29,9 @@ cpu_architecture=$(echo "$lscpu_output" | egrep "^Architecture:" | awk '{print $
 cpu_model=$(echo "$lscpu_output" | egrep "^Model name:" | awk -F':' '{print $2}' | xargs)
 cpu_mhz=$(echo "$lscpu_output" | egrep "^CPU MHz:" | awk -F':' '{print $2}' | xargs)
 l2_cache=$(echo "$lscpu_output" | egrep "^L2 cache:" | awk '{print $3}' | xargs)
-total_mem=$(echo "$meminfo" | egrep "MemTotal:" | awk '{print $2}' | xargs)
+total_mem=$(grep MemTotal /proc/meminfo | awk '{print $2 $3}'| xargs)
+
+
 timestamp=$(vmstat -t | awk '{if(NR==3) print $18" "$19}' | xargs)
 
 export PGPASSWORD=$psql_password
