@@ -1,42 +1,34 @@
 #!/bin/bash
 
-#setting arguments
-
 psql_host=$1
 psql_port=$2
 database=$3
 psql_user=$4
 psql_password=$5
 
+#Error message for missing arguments
+if [ "$#" -ne 5 ]; then
+    echo "Illegal number of parameters. Please provide psql host, port number, database name, user and password"
+    exit 1
+fi
+
 hostname=$(hostname -f)
+memory_free=$(vmstat --unit M |awk '{for(i=NF;i>0;i--)if($i=="free"){x=i;break}}END{print $x}' | xargs)
+cpu_idle=$(vmstat --unit M |awk '{for(i=NF;i>0;i--)if($i=="id"){x=i;break}}END{print $x}' | xargs)
+cpu_kernel=$(vmstat --unit M |awk '{for(i=NF;i>0;i--)if($i=="sy"){x=i;break}}END{print $x}' | xargs)
+disk_io=$(vmstat -d |awk '{for(i=NF;i>0;i--)if($i=="cur"){x=i+1;break}}END{print $x}' | xargs)
+disk_available1=$(df -BM / |awk '{for(i=NF;i>0;i--)if($i=="Available"){x=i;break}}END{print $x}' | xargs)
+disk_available=${disk_available1//[^[:digit:].-]/}
+timestamp=$(date +"%Y-%m-%d %H:%M:%S")
 
-# Linux info
+#Query to insert data into host_usage table
 
-lscpu_output=`lscpu`
-meminfo=`cat /proc/meminfo`
-vmstat=`vmstat -a -S M`
-disk=`df -BM /`
+insert_stmnt="INSERT INTO host_usage(timestamp,host_id,memory_free,cpu_idle,cpu_kernel,disk_io,disk_available) VALUES('$timestamp',(SELECT id FROM host_info WHERE hostname='$hostname'),$memory_free,$cpu_idle,$cpu_kernel,$disk_io,$disk_available);"
 
-timestamp=$(vmstat -t | awk '{if(NR==3) print $18" "$19}' | xargs)
-
-# CPU utilization info
-
-memory_free=$(echo "$vmstat" | awk '{if(NR==3) print $4}' | xargs)
-cpu_idle=$(echo "$disk" | awk '{if(NR==2) print 100-$5}' | xargs)
-cpu_kernel=$(echo "$meminfo" | egrep "^KernelStack:" | awk '{print $2}' | xargs)
-disk_io=$(vmstat --unit M | awk '{if(NR==3) print $9}' | xargs)
-disk_available=$(echo "$disk" | awk '{if(NR==3) print $4}' | xargs)
-
-export PGPASSWORD='$psql_password' psql -h $hostname -U $psql_user -w $database_name -p $psql_port -c \
-        "INSERT INTO host_usage
-         (hostname,  memory_free, cpu_idle, cpu_kernel, disk_io, disk_available) 
-         VALUES ('"$hostname"', $memory_free, $cpu_idle,$cpu_kernel, $disk_io, $disk_available);"
-
+#Executing Insert statement through psql CLI tool
+export PGPASSWORD=$psql_password
+psql -h localhost -p 5432 -U postgres -d host_agent -c "$insert_stmnt"
 exit 0
-
-
-
-
 
 
 

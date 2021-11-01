@@ -2,36 +2,32 @@
 
 psql_host=$1
 psql_port=$2
-database_name=$3
+db_name=$3
 psql_user=$4
 psql_password=$5
 
-# Checking for parameters
-if [ "$#" -ne 5 ];
-then
-  echo "Incorrect number of parameters provided."
+#Error message for missing arguments
+if [ "$#" -ne 5 ]; then
+    echo "Illegal number of parameters. Please provide psql host, port number, database name, user and password"
+    exit 1
 fi
 
-# Saving host name to a variable.
+#parsing host hardware specifications
 hostname=$(hostname -f)
+lscpu_out=`lscpu`
+cpu_number=$(echo "$lscpu_out" | egrep "^CPU\(s\):" | awk '{print $2}' | xargs)
+cpu_architecture=$(echo "$lscpu_out" | egrep "^Architecture:" | awk '{print $2}' | xargs)
+cpu_model=$(echo "$lscpu_out" | egrep "^Model:" | awk '{print $2}' | xargs)
+cpu_mhz=$(echo "$lscpu_out" | egrep "^CPU\sMHz:" | awk '{print $3}' | xargs)
+l2_cache1=$(echo "$lscpu_out" | egrep "^L2\scache:" | awk '{print $3}' | xargs)
+l2_cache=${l2_cache1//[^[:digit:].-]/}
+total_mem=$(cat /proc/meminfo | egrep "MemTotal:" | awk '{print $2}' | xargs)
+timestamp=$(date +"%Y-%m-%d %H:%M:%S")
 
-# Linux information.
-lscpu_output=`lscpu`
-#meminfo=`cat /proc/meminfo`
+#Query to insert data into host_info table
+insert_stmnt="INSERT INTO host_info (hostname, cpu_number, cpu_architecture, cpu_model, cpu_mhz, l2_cache, total_mem, timestamp) VALUES('$hostname', $cpu_number, '$cpu_architecture', $cpu_model, $cpu_mhz, $l2_cache, $total_mem, '$timestamp');"
 
-# Saving hardware details into new variables
-cpu_number=$(echo "$lscpu_output" | egrep "^CPU\(s\):" | awk '{print $2}' | xargs)
-cpu_architecture=$(echo "$lscpu_output" | egrep "^Architecture:" | awk '{print $2}' | xargs)
-cpu_model=$(echo "$lscpu_output" | egrep "Model name" | awk '{print $2}' | xargs)
-cpu_mhz=$(echo "$lscpu_output" | egrep "^CPU MHz:" | awk -F':' '{print $2}' | xargs)
-l2_cache=$(echo "$lscpu_output" | egrep "^L2 cache:" | awk '{print $3}' | xargs)
-total_mem=$(grep MemTotal /proc/meminfo | awk '{print $2 $3}'| xargs)
-timestamp=$(vmstat -t | awk '{if(NR==3) print $18" "$19}' | xargs)
-
-insert_stmt="INSERT INTO host_info
-	 (hostname, cpu_number, cpu_architecture, cpu_model, cpu_mhz, l2_cache, total_mem, timestamp)
-	 VALUES ('"$hostname"', '"$cpu_number"', '"$cpu_architecture"', '"$cpu_model"', '"$cpu_mhz"', '"$l2_cache"', '"$total_mem"', '"$timestamp"');"
-
+#Executing Insert statement through psql CLI tool
 export PGPASSWORD=$psql_password
-psql -h $hostname -U $psql_user -w $database_name -p $psql_port -c "$insert_stmt"
-exit 0 
+psql -h localhost -p 5432 -U postgres -d host_agent -c "$insert_stmnt"
+exit 0
