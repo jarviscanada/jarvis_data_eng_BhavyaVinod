@@ -7,6 +7,8 @@
 
 ### Architecture and design
 
+![read](https://user-images.githubusercontent.com/60229391/139755165-e259952b-4a4f-47ef-882a-55db5dc0e766.PNG)
+
 ###### A primary server will host the central database. In this database, there are two tables : 
 - ###### ``` host_usage ``` contains information the usage statistics on each cluster node
 - ###### ``` host_info ``` contains the hardware information of each node
