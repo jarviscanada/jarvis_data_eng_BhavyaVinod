@@ -1,14 +1,12 @@
 package ca.jrvs.apps.grep;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.ArrayList;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class JavaGrepLambdaImp extends JavaGrepImp {
 
@@ -28,48 +26,63 @@ public class JavaGrepLambdaImp extends JavaGrepImp {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+
+
+    }
+    @Override
+    public List<File> listFiles(String rootDir) {
+        List<File> result = new ArrayList<>();
+        try{
+            result= Files.walk(Paths.get(rootDir)).filter(Files::isRegularFile).map(Path::toFile).collect(Collectors.toList());
+
+        }catch(Exception ex){
+            logger.error("File not Found Exception", ex);
+        }
+        return result;
     }
 
     @Override
-    public List<String> readLines(File inputFile){
-        List<String> lineList = new ArrayList<>();
+    public List<String> readlines(File inputFile){
+        List<String> Line_List = new ArrayList<>();
+        try {
+            Line_List = Files.lines(Paths.get(inputFile.getPath())).collect(Collectors.toList());
 
-        // Modified from https://www.mkyong.com/java8/java-8-stream-read-a-file-line-by-line/
-
-        try (Stream<String> lines = Files.lines(Paths.get(String.valueOf(inputFile)))) {
-            lines.forEach(line -> lineList.add(line));
-        } catch (IOException e) {
-            e.printStackTrace();
+        }catch(Exception ex){
+            logger.error("Input Output Exception", ex);
         }
-        return lineList;
+
+        return Line_List;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    @Override
+    public String grtOutFile() {
+        return null;
     }
 
     @Override
-    public List<File> listFiles(String rootDir){
+    public void setOutFile(String outFile) {
 
-        File root = new File(rootDir);
-        File[] list = root.listFiles();
-        List<File> fileList = new ArrayList<>();
-
-        if (list == null){
-            return null;
-        }
-
-        // Modified from https://www.mkyong.com/java/java-how-to-list-all-files-in-a-directory/
-        try (Stream<Path> paths = Files.walk(Paths.get(rootDir))){
-            // Files.walk() walks through the file tree, so it already includes the files
-            // found in subdirectories. From there, filter to make sure that the argument given
-            // is a file, map to transform the filename to a String, and then collect it in the
-            // form of a List.
-            List<String> result = (List<String>) paths.filter(file -> Files.isRegularFile(file))
-                    .map(file -> file.toString())
-                    .collect(Collectors.toList());
-            // Transfer the file collection from List<String> result to List<String> fileList which
-            // exists in this method external from the try.
-            result.forEach(file -> fileList.add(new File(file)));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return fileList;
     }
 }
